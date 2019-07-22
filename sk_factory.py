@@ -12,20 +12,20 @@ Query = Query()
 
 # class Factory(object):
 
-def instance_call(list_data: [{}], call: str):
+def instance_call(list_data: [{}], class_call):
     if not bool(len(list_data)):
         return []
     else:
         switcher = {
-            'artist': build_artist,
-            'city': build_city,
-            'event': build_event,
-            'location': build_location,
-            'venue': build_venue,
-            'metro_area': build_metro_area,
-            'performance': build_performances
+            Artist: build_artist,
+            City: build_city,
+            Event: build_event,
+            Location: build_location,
+            Venue: build_venue,
+            MetroArea: build_metro_area,
+            Performance: build_performances
         }
-        function_call = switcher.get(call)
+        function_call = switcher.get(class_call)
 
         return function_call(list_data)
 

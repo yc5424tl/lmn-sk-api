@@ -9,7 +9,7 @@ app.config.from_object(config.DevelopmentConfig)
 API = API()
 
 
-@app.route('/events')
+@app.route('/events/local')
 def local_events_response():
     log(f'Local Events Request @ {request.access_route[-1]}')
     api_data = API.search_events_near_ip(request.access_route[-1])
@@ -27,10 +27,7 @@ def artist_response(artist_name: str):
 def matching_artists_response(artist_name: str):
     log(f'Matching Artists Request for {artist_name} @ {request.access_route[-1]}')
     artist_data = API.search_for_artist(artist_name=artist_name, match_first=False)
-    return (jsonify({artist.display_name:artist.to_dict() for artist in artist_data}) , 200) if artist_data \
-        else (f'No Matches for {artist_name}', 200)
-
-
+    return (jsonify({artist.display_name:artist.to_dict() for artist in artist_data}), 200) if artist_data else (f'No Matches for {artist_name}', 200)
 
 
 @app.route('/venue/<venue_name>')

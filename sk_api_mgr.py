@@ -2,22 +2,20 @@ import json
 import os
 from logging import Logger
 
+import sk_factory as Factory
 from api_models.sk_artist import Artist
 from api_models.sk_event import Event
 from api_models.sk_venue import Venue
-# from sk_factory import Factory
 from sk_query_mgr import Query
-
-import sk_factory as Factory
-import pprint
-pp = pprint.PrettyPrinter()
 
 search_ip_endpoint = "http://api.songkick.com/api/3.0/events.json?apikey={}&location=ip:{}"
 log = Logger
-# Factory = Factory()
 Query = Query()
 
+
+
 class API:
+
     def __init__(self):
         self.key = os.getenv('SK_API_KEY')
 
@@ -27,11 +25,13 @@ class API:
         response_dict = Query.search_artists_by_name(artist_name, match_first=match_first)
         try:
             if match_first:
+                # return Factory.instance_call(response_dict, class_call=Artist)
                 new_artist = Factory.build_artist(response_dict)
                 return new_artist
             else:
                 matching_artists_list = []
                 for artist in response_dict:
+                    # matching_artists_list.append(Factory.instance_call(artist, class_call=Artist))
                     new_artist = Factory.build_artist(artist)
                     matching_artists_list.append(new_artist)
                 return matching_artists_list
@@ -44,7 +44,7 @@ class API:
         if len(venue_dict_list) == 0:
             return []
         else:
-            venue_list = self.instantiate_venues_from_list(venue_dict_list)
+            venue_list = self.instantiate_list_data(venue_dict_list, call=Venue)
             return venue_list
 
 
@@ -53,7 +53,7 @@ class API:
         if len(event_dict_list) == 0:
             return []
         else:
-            events_list = self.instantiate_events_from_list(event_dict_list)
+            events_list = self.instantiate_list_data(event_dict_list, call=Event)
             return events_list
 
 
@@ -62,7 +62,7 @@ class API:
         if len(event_dict_list) == 0:
             return []
         else:
-            events_list = self.instantiate_events_from_list(event_dict_list)
+            events_list = self.instantiate_list_data(event_dict_list, call=Event)
             return events_list
 
 
@@ -73,7 +73,7 @@ class API:
         if len(event_dict_list) == 0:
             return []
         else:
-            events_list = self.instantiate_events_from_list(event_dict_list)
+            events_list = self.instantiate_list_data(event_dict_list, call=Event)
             return events_list
 
 
@@ -115,14 +115,14 @@ class API:
             return artists_list
 
     @staticmethod
-    def instantiate_list_data(list_data:[{}], call: str):
+    def instantiate_list_data(list_data:[{}], call):
         if not bool(len(list_data)):
             return []
         else:
             instance_list = []
             for data in list_data:
                 try:
-                    new_instance = Factory.instance_call(list_data=data, call=call)
+                    new_instance = Factory.instance_call(list_data=data, class_call=call)
                     instance_list.append(new_instance)
                 except KeyError as kE:
                     log(f'KeyError {kE} during {call} instance call passing {data}')
