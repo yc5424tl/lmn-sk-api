@@ -1,7 +1,7 @@
 import json
 
 class City(object):
-    def __init__(self, sk_id: int or None, name: str or None, uri: str or None, country: dict or None):
+    def __init__(self, sk_id: int, name: str, uri: str or None, country: dict or None):
         self.sk_id   = sk_id
         self.name    = name
         self.uri     = uri

@@ -42,7 +42,7 @@ class Event(object):
                 'start'       : self.start,
                 'status'      : self.status,
                 'uri'         : self.uri,
-                'venue'       : self.venue.__dict__() if self.venue else None}
+                'venue'       : self.venue.__dict__() }
 
     def to_json(self):
         return json.dumps(self, default=lambda e: e.__dict__, sort_keys=True, indent=4)

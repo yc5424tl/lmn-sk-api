@@ -3,58 +3,72 @@ import os
 from flask import Flask, request, jsonify
 import config
 from sk_api_mgr import API, log
-
+# from api_models.sk_artist import Artist
+# from api_models.sk_event import Event
+# from api_models.sk_venue import Venue
 app = Flask(__name__)
-app.config.from_object(config.DevelopmentConfig)
+cfg = config.DevelopmentConfig
+app.config.from_object(cfg)
 API = API()
 
 
 @app.route('/events/local')
 def local_events_response():
     log(f'Local Events Request @ {request.access_route[-1]}')
-    api_data = API.search_events_near_ip(request.access_route[-1])
-    return jsonify(local_events=[Event.__dict__() for Event in api_data]), 200
+    event_data = API.search_events_near_ip(request.access_route[-1])
+    return (jsonify(local_events={Event.__dict__() for Event in event_data}), 200) if event_data \
+        else (jsonify({None: f'No Events Found Near {request.access_route[-1]}'}), 200)
 
 
-@app.route('/artist/search/first/<artist_name>')
+@app.route('/artist/search/first/<string:artist_name>')
 def artist_response(artist_name: str):
     log(f'Artist Request for {artist_name} @ {request.access_route[-1]}')
-    artist_data = API.search_for_artist(artist_name, match_first=True)
-    return (jsonify(artist_data.to_dict()),200) if artist_data else (f'Match not Found For {artist_name}',200)
+    artist_data = API.search_artists(artist_name, match_first=True)
+    return (jsonify(artist=artist_data.__dict__()), 200) if artist_data \
+        else (jsonify(artist={None: f'Match not Found For: {artist_name}'}), 200)
 
 
-@app.route('/artist/search/all/<artist_name>')
-def matching_artists_response(artist_name: str):
-    log(f'Matching Artists Request for {artist_name} @ {request.access_route[-1]}')
-    artist_data = API.search_for_artist(artist_name=artist_name, match_first=False)
-    return (jsonify({artist.display_name:artist.to_dict() for artist in artist_data}), 200) if artist_data else (f'No Matches for {artist_name}', 200)
+@app.route('/artist/search/all/<string:artist_name>')
+def artists_response(artist_name: str):
+    log(f'Artists Request for {artist_name} @ {request.access_route[-1]}')
+    artist_data = API.search_artists(artist_name=artist_name, match_first=False)
+    return (jsonify({Artist.__dict__() for Artist in artist_data}), 200) if artist_data \
+        else (jsonify(artists=f'No Artists Found For: {artist_name}'), 200)
 
 
-@app.route('/venue/<venue_name>')
+@app.route('/artist/upcoming/<artist_id>')
+def artist_upcoming_response(artist_id: int):
+    log(f'Artist Upcoming Request for {artist_id} @ {request.access_route[-1]}')
+    upcoming_data = API.search_artist_id_for_upcoming_events(artist_id)
+    print(f' UPCOMING_DATA TYPE = {type(upcoming_data)}')
+    for Event in upcoming_data:
+        print(f'EVENT IN UPCOMING_DATA TYPE = {type(Event)}')
+    return (jsonify(upcoming_events={Event.__dict__() for Event in upcoming_data}), 200) if upcoming_data \
+        else (jsonify(upcoming_events={None: f'No Upcoming Events Found For Artist {artist_id}'}), 200)
+
+
+@app.route('/venue/search/all/<string:venue_name>')
+def venues_response(venue_name: str):
+    log(f'Venues Request for {venue_name} @ {request.access_route[-1]}')
+    venue_data = API.search_venues(venue_name=venue_name, match_first=False)
+    return (jsonify(venues={Venue.__dict__() for Venue in venue_data}), 200) if venue_data \
+        else (jsonify(venues={None: f'No Venues Found For: {venue_name}'}), 200)
+
+
+@app.route('/venue/search/first/<string:venue_name>')
 def venue_response(venue_name: str):
     log(f'Venue Request for {venue_name} @ {request.access_route[-1]}')
-    api_data = API.search_venues(venue_name)
-    venue_dict_list = API.instantiate_venues_from_list(api_data)
-    serialized_venue_list = API.serialize_list(venue_dict_list)
-    return jsonify(serialized_venue_list), 200
+    venue_data = API.search_venues(venue_name=venue_name, match_first=True)
+    return (jsonify(venue=venue_data.__dict__()), 200) if venue_data \
+        else (jsonify(venue={None: f'No Venue Found For {venue_name}'}), 200)
 
 
-@app.route('/upcoming/artist/<int:sk_id>')
-def artist_upcoming_response(sk_id: int):
-    log(f'Artist Upcoming Request for {sk_id} @ {request.access_route[-1]}')
-    api_data = API.search_artist_id_for_upcoming_events(sk_id)
-    event_dict_list = API.instantiate_events_from_list(api_data)
-    serialized_event_list = API.serialize_list(event_dict_list)
-    return jsonify(serialized_event_list), 200
-
-
-@app.route('/upcoming/venue/<int:venue_id>')
+@app.route('/venue/upcoming/<int:venue_id>')
 def venue_upcoming_response(venue_id: int):
     log(f'Venue Upcoming Request for {venue_id} @ {request.access_route[-1]}')
-    api_data = API.search_venue_id_for_upcoming_events(venue_id)
-    event_dict_list = API.instantiate_events_from_list(api_data)
-    serialized_event_list = API.serialize_list(event_dict_list)
-    return jsonify(serialized_event_list), 200
+    upcoming_data = API.search_venue_id_for_upcoming_events(venue_id, match_first=False)
+    return (jsonify(upcoming_events={Event.__dict__() for Event in upcoming_data}), 200) if upcoming_data \
+        else (jsonify(upcoming_events={None: f'No Upcoming Events Found For Venue {venue_id}'}), 200)
 
 
 if __name__ == '__main__':

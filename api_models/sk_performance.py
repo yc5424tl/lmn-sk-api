@@ -12,7 +12,7 @@ class Performance(object):
         return f'ARTIST: {self.name}  SLOT: {self.billing_index} BILL: {self.billing}  SK_ID: {self.sk_id}'
 
     def __dict__(self):
-        return {'artist'       : self.artist.to_dict(),
+        return {'artist'       : self.artist.__dict__(),
                 'billing'      : self.billing,
                 'billing_index': self.billing_index,
                 'name'         : self.name,
