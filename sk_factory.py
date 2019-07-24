@@ -99,8 +99,16 @@ def build_performances(performance_data: [{}]) -> [Performance]:
 
 
 def build_venue(venue_data: dict) -> Venue:
+    # import pprint
+    # pp = pprint.PrettyPrinter()
+    # pp.pprint(venue_data)
+    # print(f'type(venue_data) = {type(venue_data)}')
+    if venue_data['capacity'] is None:
+        venue_capacity = -1
+    else:
+        venue_capacity = venue_data['capacity']
     return Venue(
-        capacity    = venue_data['capacity'],
+        capacity    = venue_capacity,
         city        = venue_data['city'],
         description = venue_data['description'],
         lat         = venue_data['lat'],

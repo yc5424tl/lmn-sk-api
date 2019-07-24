@@ -6,16 +6,16 @@ from api_models.sk_venue import Venue
 
 class Event(object):
     def __init__(self,
-                 display_name: str           or None,
-                 event_type:   str           or None,
-                 location:     Location      or None,
-                 performances: [Performance] or None,
+                 display_name: str,
+                 event_type:   str,
+                 location:     Location,
+                 performances: [Performance],
                  popularity:   float         or None,
-                 sk_id:        int           or None,
-                 start:        dict          or None,
-                 status:       str           or None,
-                 uri:          str           or None,
-                 venue:        Venue         or None ):
+                 sk_id:        int,
+                 start:        dict,
+                 status:       str,
+                 uri:          str,
+                 venue:        Venue):
 
         self.display_name = display_name
         self.event_type   = event_type

@@ -1,6 +1,8 @@
+from datetime import date
+
 
 class Artist(object):
-    def __init__(self, sk_id, display_name, uri, tour_end_date):
+    def __init__(self, sk_id: int, display_name: str, uri: str, tour_end_date: date or None):
         self.sk_id = sk_id
         self.display_name = display_name
         self.uri = uri

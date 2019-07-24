@@ -4,16 +4,16 @@ from api_models.sk_metro_area import MetroArea
 class Venue(object):
     def __init__(self,
                  capacity   : int or None,
-                 city       : dict or None,
+                 city       : dict, # City Class
                  description: str or None,
                  lat        : float or None,
                  lng        : float or None,
                  metro_area : MetroArea or None,
-                 name       : str or None,
+                 name       : str,
                  phone      : str or None,
-                 sk_id      : int or None,
+                 sk_id      : int,
                  street     : str or None,
-                 uri        : str or None,
+                 uri        : str,
                  website    : str or None,
                  zip_code   : str or None):
 

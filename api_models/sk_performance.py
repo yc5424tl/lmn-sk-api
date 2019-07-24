@@ -1,7 +1,10 @@
 import json
 
+from api_models.sk_artist import Artist
+
+
 class Performance(object):
-    def __init__(self, artist, billing: str, billing_index: int, name: str,sk_id: int):
+    def __init__(self, artist: Artist, billing: str, billing_index: int, name: str,sk_id: int):
          self.artist = artist
          self.billing = billing
          self.billing_index = billing_index

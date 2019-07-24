@@ -8,10 +8,10 @@ class Location(object):
         self.lng  = lng
 
     def __str__(self) -> str:
-        return f'CITY: {self.city} LAT: {self.lat} LNG: {self.lng}'
+        return f'CITY: {self.city}  LAT: {self.lat}  LNG: {self.lng}'
 
     def __dict__(self) -> dict:
-        return {'city': self.city, 'lat' : self.lat, 'lng' : self.lng}
+        return {'city': self.city,  'lat': self.lat,  'lng': self.lng}
 
     def to_json(self):
         return json.dumps(self, default=lambda loc: loc.__dict__, sort_keys=True, indent=4)

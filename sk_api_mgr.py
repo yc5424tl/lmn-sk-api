@@ -39,8 +39,8 @@ class API:
             return False
 
 
-    def search_venues(self, venue_name: str) -> [Venue]:
-        venue_dict_list = Query.search_venues_by_name(venue_name)
+    def search_venues(self, venue_name: str, first_match: bool) -> [Venue]:
+        venue_dict_list = Query.search_venues_by_name(venue_name, first_match=first_match)
         if len(venue_dict_list) == 0:
             return []
         else:
@@ -48,7 +48,7 @@ class API:
             return venue_list
 
 
-    def search_artist_id_for_upcoming_events(self, artist_id: int) -> [Event]:
+    def search_artist_id_for_upcoming_events(self, artist_id: int) -> [Event] or []:
         event_dict_list = Query.search_artist_upcoming_events(artist_id)
         if len(event_dict_list) == 0:
             return []
@@ -56,10 +56,34 @@ class API:
             events_list = self.instantiate_events_from_list(event_dict_list)
             return events_list
 
+    def search_events_by_metro_area(self, metro_area_id: int) -> [Event] or []:
+        event_dict_list = Query.search_events_by_metro_area(metro_area_id)
+        if not event_dict_list:
+            return []
+        else:
+            event_list = self.instantiate_events_from_list(event_dict_list)
+            return event_list
+
+    def search_artist_gigography(self, artist_id: int):
+        event_dict_list = Query.gigography(artist_id)
+        if not event_dict_list:
+            return []
+        else:
+            event_list = self.instantiate_events_from_list(event_dict_list)
+            return event_list
+
+    def search_venue_id(self, venue_id: int) -> [Venue] or []:
+        venue_dict = Query.search_venue_by_id(venue_id)
+        if not venue_dict:
+            return []
+        else:
+            venue_list = self.instantiate_venues_from_list([venue_dict])
+            return venue_list
+
 
     def search_venue_id_for_upcoming_events(self, venue_id: int) -> [Event]:
         event_dict_list = Query.search_venue_upcoming_events(venue_id)
-        if len(event_dict_list) == 0:
+        if not event_dict_list:
             return []
         else:
             events_list = self.instantiate_events_from_list(event_dict_list)
@@ -70,7 +94,7 @@ class API:
         if ip_addr == '127.0.0.1':
             ip_addr = '67.220.22.82'
         event_dict_list = Query.search_events_by_ip_location(ip_addr)
-        if len(event_dict_list) == 0:
+        if not event_dict_list:
             return []
         else:
             events_list = self.instantiate_events_from_list(event_dict_list)
