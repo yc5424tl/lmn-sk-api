@@ -5,8 +5,8 @@ class Config(object):
     TESTING = False
     DATABASE_URI = None
     JSONIFY_PRETTYPRINT_REGULAR = False
-    EXECUTOR_TYPE = 'process'
-    EXECUTOR_MAX_WORKERS = 4
+    # EXECUTOR_TYPE = 'process'
+    # EXECUTOR_MAX_WORKERS = 4
 
 class DevelopmentConfig(Config):
     TEMPLATES_AUTO_RELOAD = True

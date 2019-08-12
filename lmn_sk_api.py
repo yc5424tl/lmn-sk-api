@@ -1,20 +1,85 @@
 import os
+
+import multiprocessing
 from flask_executor import Executor
 import requests
 from flask import Flask, request, jsonify
 
 import config
-from sk_api_mgr import API, log
-import sk_factory as factory
+import sk_api_mgr
+import sk_factory
 import pprint
+import sk_query_mgr
+
+
+class SkEvent(object):
+    # def __init__(self,
+    #              display_name: str,
+    #              event_type:   str,
+    #              # location:     Location or None,
+    #              # performances: [Performance] or None,
+    #              popularity:   float         or None,
+    #              sk_id:        int,
+    #              start:        dict,
+    #              status:       str,
+    #              uri:          str):
+    #              # venue:        Venue):
+
+    def __init__(self, event_data: dict):
+        print(f'\nEVENT DATA -> \n\n{event_data}\n')
+        # try:
+        self.display_name = event_data['displayName']
+        self.event_type = event_data['type']
+        self.popularity = event_data['popularity']
+        self.sk_id = event_data['id']
+        self.start = event_data['start']
+        self.status = event_data['status']
+        self.uri = event_data['uri']
+        print('end of __init__')
+        # except Exception as exc:
+        #     print(f'Exception {exc} building event')
+            # self.display_name = display_name
+            # self.event_type   = event_type
+            # # self.location     = location
+            # # self.performances = performances
+            # self.popularity   = popularity
+            # self.sk_id        = sk_id
+            # self.start        = start
+            # self.status       = status
+            # self.uri          = uri
+            # # self.venue        = venue
+
+    def __str__(self) -> str:
+        return self.display_name
+
+        # return f'{", ".join([perf.__str__() for perf in self.performances])}'\
+        #        f' @ {self.venue}' if self.venue else '' + f'{self.start}' if self.start else ''
+
+
+    def __dict__(self):
+        return {'display_name': self.display_name,
+                'event_type'  : self.event_type,
+                # 'location'    : self.location.__dict__(),
+                # 'performances': [performance.__dict__() for performance in self.performances],
+                'popularity'  : self.popularity,
+                'sk_id'       : self.sk_id,
+                'start'       : self.start,
+                'status'      : self.status,
+                'uri'         : self.uri}
+                # 'venue'       : self.venue.__dict__() if self.venue else None}
+
+
+# __name__ = 'lmn-sk-api.lmn_sk_api'
 
 app = Flask(__name__)
 app.config.from_object(config.Config)
 executor = Executor(app)
 # _pool = None
 pp = pprint.PrettyPrinter()
-Factory = factory.Factory()
-API = API(Factory)
+factory = sk_factory.Factory()
+API = sk_api_mgr.API()
+log = sk_api_mgr.log
+Query = sk_query_mgr.Query()
 # session = None
 
 # def set_global_session():
@@ -22,24 +87,72 @@ API = API(Factory)
 #     if not session:
 #         session = requests.Session()
 
-def get_local_event_data(ip_addr):
-    local_event_data = API.search_events_near_ip(ip_addr[0])
-    return local_event_data
+# def get_local_event_data(ip):
+#     local_event_data = API.search_events_near_ip(ip_addr=ip)
+#     return local_event_data
+
+def parallel_get_events(event_dict_list:[{}]):
+    p = multiprocessing.Pool(processes=5)
+    sk_events = p.map(SkEvent, [sk_event for sk_event in event_dict_list])
+    print(f'sk_events = {sk_events}')
+    p.close()
+    p.join()
+    return sk_events
 
 @app.route('/events/local')
 def local_events_response():
-    log(f'Local Events Request @ {request.access_route[-1]}')
-    # local_event_data = _pool.apply_async(get_local_event_data, [request.access_route[-1]])
-    # result = local_event_data.get()
-    # print('MULTIPROCESSING RESULT! ->')
-    # pp.pprint(result)
+    # local_event_data = API.search_events_near_ip(ip_addr=request.access_route[-1])
+    print(f'__name__ == {__name__}')
 
-    # local_event_data = API.search_events_near_ip(request.access_route[-1], executor)
-    local_event_data = API.search_events_near_ip(request.access_route[-1])
-    result = (jsonify([event.__dict__() for event in local_event_data]), 200) if local_event_data \
-        else (f'No Local Events For IP Address {request.access_route[-1]}', 200)
-    print(f'Total # Objects Instantiated: {Factory.total_objects()}')
-    return result
+    if __name__ == 'lmn-sk-api.lmn_sk_api':
+        multiprocessing.freeze_support()
+        # api_result = Query.conc_search_events_by_ip_location(ip_addr=request.access_route[-1])
+        api_result = Query.search_events_by_ip_location(request.access_route[-1])
+        print('have api results to send')
+        sk_events_list = parallel_get_events(api_result[0:3])
+        print('past parallel_get_events')
+        for ske in sk_events_list:
+            print(f'type(ske) -> {type(ske)}')
+            print(ske)
+        return (jsonify([ske.__dict__() for ske in sk_events_list]), 200) if sk_events_list else (f'No Events Found Near IP Address {request.access_route[-1]}', 200)
+
+
+
+
+
+
+
+
+    #     print('in if __name__....')
+    #     sk_events_list = parallel_get_events(local_events_data)
+    #     print('after sk_events_list = parallel_get_events(local_events_data)')
+    #     for ske in sk_events_list:
+    #         print(f'type(ske) -> {type(ske)}')
+    #         print(ske)
+    #     return (jsonify([event.__dict__() for event in sk_events_list]), 200) if sk_events_list else (f'No Events Found Near IP Address {request.access_route[-1]}', 200)
+    # else:
+    #     print(f'__name__ ==> {__name__}')
+    #     return '__name__ not scoped', 200
+    # result = (jsonify([event.__dict__() for event in local_event_data]), 200) if local_event_data \
+    #     else (f'No Local Events For IP Address {request.access_route[-1]}', 200)
+
+
+
+    # print(f'request.access_route[-1]: {request.access_route[-1]}')
+    # print(f'type(request.access_route[-1]: {type(request.access_route[-1])}')
+    # log(f'Local Events Request @ {request.access_route[-1]}')
+    # # local_event_data = _pool.apply_async(get_local_event_data, [request.access_route[-1]])
+    # # result = local_event_data.get()
+    # # print('MULTIPROCESSING RESULT! ->')
+    # # pp.pprint(result)
+    #
+    # # local_event_data = API.search_events_near_ip(request.access_route[-1], executor)
+    # local_event_data = API.search_events_near_ip(ip_addr=request.access_route[-1])
+    # print(f'\n\nLOCAL EVENT DATA\n{local_event_data}\nEND LOCAL EVENT DATA\n\n')
+    # result = (jsonify([event.__dict__() for event in local_event_data]), 200) if local_event_data \
+    #     else (f'No Local Events For IP Address {request.access_route[-1]}', 200)
+    # print(f'Total # Objects Instantiated: {factory.total_objects()}')
+    # return result
 
 @app.route('/artist/gigography/<artist_id>')
 def gigography_response(artist_id: int):

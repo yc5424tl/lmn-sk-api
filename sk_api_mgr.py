@@ -18,23 +18,23 @@ search_ip_endpoint = "http://api.songkick.com/api/3.0/events.json?apikey={}&loca
 log = Logger
 Query = Query()
 event_count = 0
-# factory = Factory()
+fctry = Factory()
 
 
 
 class API:
-    def __init__(self, factory: Factory):
+    def __init__(self):
         self.key = os.getenv('SK_API_KEY')
-        self.factory = factory
+        self.factory = fctry
 
 
 
-    def search_for_artist(self, artist_name: str, match_first: bool) -> Artist or False:
+    def search_for_artist(self, artist_name: str, match_first: bool) -> [Artist] or False:
         response_dict = Query.search_artists_by_name(artist_name, match_first=match_first)
         try:
             if match_first:
                 new_artist = self.factory.build_artist(response_dict)
-                return new_artist
+                return [new_artist]
             else:
                 matching_artists_list = []
                 for artist in response_dict:
@@ -112,16 +112,33 @@ class API:
             return events_list
 
 
-    def search_events_near_ip(self, ip_addr: str) -> [{}]:
+    def search_events_near_ip(self, ip_addr: str) -> [] or [Event]:
+        # from api_models.sk_event import Event
+        # import sk_factory
+        from sk_query_mgr import Query
+        query = Query()
+        # Query = Query()
         if ip_addr == '127.0.0.1':
             ip_addr = '67.220.22.82'
-        event_dict_list = Query.conc_search_events_by_ip_location(ip_addr)
+        event_dict_list = query.conc_search_events_by_ip_location(ip_addr)
+        # event_dict_list = Query.search_events_by_ip_location(ip_addr)
         if not event_dict_list:
             print('event_dict_list returned empty')
             return []
         else:
-            print('sending event_dict_list to instantiate_events_from_list')
-            events_list = self.instantiate_events_from_list(event_dict_list)
+            # print('sending event_dict_list to instantiate_events_from_list')
+            # events_list = self.instantiate_events_from_list(event_dict_list)
+            print(f'type(event_dict_list) = {type(event_dict_list)} from sk_api_mgr ln 125')
+            print(f'len(event_dict_list) = {len(event_dict_list)}')
+            # events_list = factory.concurrent_build_events(event_data=event_dict_list)
+            # print(f'\n\n EVENT DICT LIST\n{event_dict_list}\nEND EVENT DICT LIST\n\n')
+            sanitized_event_data = [e for e in event_dict_list if all(x in e.keys() for x in ['displayName', 'popularity', 'id', 'status', 'start', 'type'])]
+            print(f'len(sanitized_event_data) = {len(sanitized_event_data)}')
+            events_list = self.factory.concurrent_build_events(sanitized_event_data)
+
+
+            # events_list = self.factory.concurrent_build_events(event_dict_list)
+            print(f'type(events_list) *after factory* -> {type(events_list)}')
             return events_list
 
 
@@ -146,7 +163,7 @@ class API:
 
 
 
-    def instantiate_events_from_list(self, event_list: [{}]) -> [Event]:
+    def instantiate_events_from_list(self, event_list: [{}]) -> [Event] or []:
         start_time = time.time()
         print(f'start time: {start_time}')
         if not event_list:
