@@ -22,10 +22,13 @@ class Event(object):
         self.display_name = event_data['displayName']
         self.event_type = event_data['type']
         self.popularity = event_data['popularity']
+        self.location = Location(event_data['location'])
+        self.performance = [Performance(p_data) for p_data in event_data['performance']]
         self.sk_id = event_data['id']
         self.start = event_data['start']
         self.status = event_data['status']
         self.uri = event_data['uri']
+        # self.venue = Venue(event_data['venue'])
         # except Exception as exc:
         #     print(f'Exception {exc} building event')
             # self.display_name = display_name
@@ -49,8 +52,8 @@ class Event(object):
     def __dict__(self):
         return {'display_name': self.display_name,
                 'event_type'  : self.event_type,
-                # 'location'    : self.location.__dict__(),
-                # 'performances': [performance.__dict__() for performance in self.performances],
+                'location'    : self.location.__dict__(),
+                'performance': [performance.__dict__() for performance in self.performance],
                 'popularity'  : self.popularity,
                 'sk_id'       : self.sk_id,
                 'start'       : self.start,

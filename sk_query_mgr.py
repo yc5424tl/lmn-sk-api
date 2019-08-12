@@ -1,4 +1,5 @@
 import concurrent
+import datetime
 import os
 import pprint
 from concurrent.futures import as_completed
@@ -116,21 +117,29 @@ class Query(object):
 
 
     def search_events_by_ip_location(self, ip_addr) -> list:
-        if ip_addr == '127.0.0.1':
-            ip = '67.220.22.82'
-        else:
-            ip = ip_addr
-        response = requests.get(self.ip_events_url.format(self.key, ip)).json()
+        start_time = datetime.datetime.now()
+        response = requests.get(self.ip_events_url.format(self.key, ip_addr)).json()
         event_dict_list = response['resultsPage']['results']['event']
         num_pages = response['resultsPage']['totalEntries']
         for page in range(2, num_pages + 1):
-            next_page_response = requests.get(self.ip_events_url.format(self.key, ip), params={'page': page}).json()
+            next_page_response = requests.get(self.ip_events_url.format(self.key, ip_addr), params={'page': page}).json()
             try:
                 for event in next_page_response['resultsPage']['results']['event']:
                     event_dict_list.append(event)
+                    self.event_count += 1
             except KeyError:
-                if 'clientLocation' in next_page_response["resultsPage"].keys():
-                    break
+                print("keyerror search vy ip")
+                end_time = datetime.datetime.now()
+                time_delta = end_time - start_time
+                print(f'time_delta = {time_delta}')
+                return event_dict_list
+                #if 'clientLocation' in next_page_response["resultsPage"].keys():
+
+
+        print(f'total number of events: {self.event_count}')
+        end_time = datetime.datetime.now()
+        time_delta = end_time - start_time
+        print(f'time_delta = {time_delta}')
         return event_dict_list
 
 

@@ -4,7 +4,7 @@ class Config(object):
     SECRET_KEY = os.urandom(27)
     TESTING = False
     DATABASE_URI = None
-    JSONIFY_PRETTYPRINT_REGULAR = False
+    JSONIFY_PRETTYPRINT_REGULAR = True
     # EXECUTOR_TYPE = 'process'
     # EXECUTOR_MAX_WORKERS = 4
 

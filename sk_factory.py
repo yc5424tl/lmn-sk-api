@@ -27,14 +27,15 @@ def instance_call(list_data: [{}], call: str):
     if not list_data:
         return []
     else:
+        factory = Factory()
         switcher = {
-            'artist': Factory.build_artist,
-            'city': Factory.build_city,
-            'event': Factory.build_event,
-            'location': Factory.build_location,
-            'venue': Factory.build_venue,
-            'metro_area': Factory.build_metro_area,
-            'performance': Factory.build_performances
+            'artist': factory.build_artist,
+            'city': factory.build_city,
+            'event': factory.build_event,
+            'location': factory.build_location,
+            'venue': factory.build_venue,
+            'metro_area': factory.build_metro_area,
+            'performance': factory.build_performances
         }
         function_call = switcher.get(call)
         return function_call(list_data)
@@ -80,35 +81,38 @@ class Factory(object):
 
 
     def build_event(self, ed: dict) -> Event or None:
+        #print('sk_factory.build_event')
         # print('build_event')
         # print(f'event_count: {self.event_count}')
         self.event_count += 1
-        key_list = ['id', 'displayName', 'type', 'uri', 'status', 'popularity', 'start', 'performance', 'ageRestriction', 'flaggedAsEnded', 'venue', 'location', 'end', 'series']
 
-        for k in ed.keys():
-            if not key_list.__contains__(k):
-                print(f'Key not in Key List, key from -> {ed.keys()}')
-                return None
+        # key_list = ['id', 'displayName', 'type', 'uri', 'status', 'popularity', 'start', 'performance', 'ageRestriction', 'flaggedAsEnded', 'venue', 'location', 'end', 'series']
+
+        # for k in ed.keys():
+        #     if not key_list.__contains__(k):
+        #         print(f'Key not in Key List, key from -> {ed.keys()}')
+        #         return None
         # print('returning event object')
-        print(f"\n\ndisplayName: {ed['displayName']}\n"
-              f"type:{ed['type']}\n"
-              f"popularity: {ed['popularity']}\n"
-              f"id:{ed['id']}\n"
-              f"start:{ed['start']}\n"
-              f"status:{ed['status']}\n"
-              f"uri:{ed['uri']}\n\n")
+        # print(f"\n\ndisplayName: {ed['displayName']}\n"
+        #       f"type:{ed['type']}\n"
+        #       f"popularity: {ed['popularity']}\n"
+        #       f"id:{ed['id']}\n"
+        #       f"start:{ed['start']}\n"
+        #       f"status:{ed['status']}\n"
+        #       f"uri:{ed['uri']}\n\n")
 
-        event = Event(
-            display_name=ed['displayName'],
-            event_type=ed['type'],
-            # location     = self.build_location(event_data['location']),
-            # performances = self.build_performances(event_data['performance']),
-            popularity=ed['popularity'],
-            sk_id=ed['id'],
-            start=ed['start'],
-            status=ed['status'],
-            uri=ed['uri'])
-        print(f'\n\nevent of type {type(event)} -> {event}')
+        event = Event(ed)
+        # event = Event(
+        #     display_name=ed['displayName'],
+        #     event_type=ed['type'],
+        #     # location     = self.build_location(event_data['location']),
+        #     # performances = self.build_performances(event_data['performance']),
+        #     popularity=ed['popularity'],
+        #     sk_id=ed['id'],
+        #     start=ed['start'],
+        #     status=ed['status'],
+        #     uri=ed['uri'])
+        #print(f'\n\nevent of type {type(event)} -> {event}')
         # try:
         #     log(f'Returning object type:{type(event)} of value:{event.__dict__()}')
         # except AttributeError as aE:
