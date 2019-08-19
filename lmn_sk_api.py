@@ -1,161 +1,161 @@
+import concurrent.futures
 import json
 import os
-import multiprocessing
-from flask_executor import Executor
-from flask import Flask, request, jsonify, Response
+import pprint
+
+import requests
+from flask import Flask, request, Response
 
 import config
-import sk_api_mgr
-import sk_factory
-import pprint
-import sk_query_mgr
-
+import controller
+from controller import factory
 
 app = Flask(__name__)
 app.config.from_object(config.Config)
-pp = pprint.PrettyPrinter()
-factory = sk_factory.Factory()
-API = sk_api_mgr.API()
-log = sk_api_mgr.log
-Query = sk_query_mgr.Query()
+pp=pprint.PrettyPrinter()
+
+artist_events_url = "https://api.songkick.com/api/3.0/artists/{query}/calendar.json?apikey={key}"
+artists_url = "https://api.songkick.com/api/3.0/search/artists.json?apikey={key}&query={query}"
+gigography_url = "https://api.songkick.com/api/3.0/artists/{query}/gigography.json?apikey={key}"
+ip_events_url = "https://api.songkick.com/api/3.0/events.json?apikey={key}&location=ip:{query}"
+key = os.getenv('SK_API_KEY')
+metro_area_events_url = "https://api.songkick.com/api/3.0/metro_areas/{query}/calendar.json?apikey={key}"
+venue_events_url = "https://api.songkick.com/api/3.0/venues/{query}/calendar.json?apikey={key}"
+venue_id_url = "https://api.songkick.com/api/3.0/venues/{query}.json?apikey={key}"
+venues_url = "https://api.songkick.com/api/3.0/search/venues.json?query={query}&apikey={key}"
+
+
+
+def generate(data_list: [{}], call: str):
+    instances = 0
+    try:
+        prev = next(iter(data_list))
+    except StopIteration:
+        yield "{" + f'{call}s: []'
+        raise StopIteration
+    yield "{" + f'{call}s: ['
+    for data in data_list:
+        if isinstance(data, list):
+            pass
+        else:
+            instances += 1
+            print(f'COUNT:{instances}  TYPE:{type(data)} OBJECT: {data})')
+            yield json.dumps(data.__dict__(), sort_keys=True, indent=4) + ', '
+            prev = data
+    yield json.dumps(prev.__dict__()) + ']}'
 
 
 @app.route('/events/local')
-def local_events_response():
-    ip = '104.223.71.228' if request.access_route[-1] == '127.0.0.1' else request.access_route[-1]
-    # Los Angeles: 104.223.71.228
-    # Minneapolis: 67.220.22.82
-    # New York: 104.131.241.43
-    # Walnut: 104.216.119.94
-    local_event_data = Query.conc_search_events_by_ip_location(ip_addr=ip)
-    if not local_event_data:
-        return []
-    else:
-        event_instance_list = API.instantiate_list_data(list_data=local_event_data, call='event')
-        def generate():
-            try:
-                prev = next(iter(event_instance_list))
-            except StopIteration:
-                yield "{'events': []}"
-                raise StopIteration
-            yield "{'events': ["
-            for event in event_instance_list:
-                yield json.dumps(event.__dict__(), sort_keys=True, indent=4) + ', '
-                prev = event
-            yield json.dumps(prev.__dict__()) + ']}'
-        return Response(generate(), content_type='application/json')
-
-
-
-
-
-
-# @app.route('/events/local')
-# def local_events_response():
-#     local_event_data = API.search_events_near_ip(ip_addr=request.access_route[-1])
-#     return (jsonify([event.__dict__() for event in local_event_data]), 200) if local_event_data else (f'No Local Events For IP Address {request.access_route[-1]}', 200)
+def get_local_events():
+    # NYC ip_addr = '104.131.241.43' if request.access_route[-1] == '127.0.0.1' else request.access_route[-1]
+    ip_addr = '67.220.22.82' if request.access_route[-1] == '127.0.0.1' else request.access_route[-1]
+    return get_query(endpoint=ip_events_url, argument=ip_addr, call='event')
 
 
 @app.route('/artist/gigography/<artist_id>')
-def gigography_response(artist_id: int):
-    log(f'Gigography Request for Artist ID {artist_id} @ {request.access_route[-1]}')
-    event_data = API.search_artist_gigography(artist_id)
-    return (jsonify([event.__dict__() for event in event_data]), 200) if event_data \
-        else (f'No Gigography For Artist ID {artist_id}', 200)
+def get_gigography(artist_id: int):
+    return get_query(endpoint=gigography_url, argument=artist_id, call='event')
 
 
 @app.route('/artist/search/top/<artist_name>')
-def artist_response(artist_name: str):
-    log(f'Artist Request for {artist_name} @ {request.access_route[-1]}')
-    artist_data = API.search_for_artist(artist_name, match_first=True)
-    return (jsonify(artist_data.__dict__()), 200) if artist_data \
-        else (f'No Artist Match Found For {artist_name}', 200)
+def get_artist(artist_name: str):
+    return get_query(endpoint=artists_url, argument=artist_name, call='artist', match_first=True)
 
 
 @app.route('/artist/search/all/<artist_name>')
-def artists_response(artist_name: str):
-    log(f'Artists Request for {artist_name} @ {request.access_route[-1]}')
-    artist_data = API.search_for_artist(artist_name=artist_name, match_first=False)
-    return (jsonify([artist.__dict__() for artist in artist_data]) , 200) if artist_data \
-        else (f'No Matching Artists for {artist_name}', 200)
+def get_artists(artist_name: str):
+    return get_query(endpoint=artists_url, argument=artist_name, call='artist')
 
 
 @app.route('/events/artist/<artist_id>')
-def artist_upcoming_response(artist_id: int):
-    log(f'Artist Events Request for {artist_id} @ {request.access_route[-1]}')
-    upcoming_data = API.search_artist_id_for_upcoming_events(artist_id)
-    return (jsonify([event.__dict__() for event in upcoming_data]), 200) if upcoming_data \
-        else (f'No Upcoming Events Found For Artist ID {artist_id}', 200)
+def get_artist_events(artist_id):
+    return get_query(endpoint=artist_events_url, argument=artist_id, call='event')
 
 
 @app.route('/venue/<venue_id>')
-def venue_id_response(venue_id):
-    log(f'Venue Request for ID {venue_id} @ {request.access_route[-1]}')
-    venue_data = API.search_venue_id(venue_id)
-    return (jsonify([venue.__dict__() for venue in venue_data]), 200) if venue_data \
-        else (f'No Match Found for Venue ID {venue_id}', 200)
+def get_venue_id(venue_id):
+    return get_query(endpoint=venue_id_url, argument=venue_id, call='venue')
 
 
 @app.route('/venue/search/all/<venue_name>')
-def venues_response(venue_name):
-    log(f'Venues Request for {venue_name} @ {request.access_route[-1]}')
-    venue_data = API.search_venues(venue_name=venue_name, first_match=False)
-    return (jsonify([venue.__dict__() for venue in venue_data]), 200) if venue_data \
-        else (f'No Matches Found for {venue_name}', 200)
+def get_venues(venue_name: str):
+    return get_query(endpoint=venues_url, argument=venue_name, call='venue')
 
 
 @app.route('/venue/search/top/<venue_name>')
-def venue_response(venue_name):
-    log(f'Venue Request for {venue_name} @ {request.access_route[-1]}')
-    venue_data = API.search_venues(venue_name=venue_name, first_match=True)
-    return (jsonify([venue.__dict__() for venue in venue_data]), 200) if venue_data \
-        else (f'No Venues Matched For {venue_name}', 200)
+def get_venue(venue_name: str):
+    return get_query(endpoint=venues_url, argument=venue_name, call='venue', match_first=True)
+
 
 @app.route('/events/venue/<venue_id>')
-def venue_upcoming_response(venue_id: int):
-    log(f'Venue Events Request for {venue_id} @ {request.access_route[-1]}')
-    upcoming_data = API.search_venue_id_for_upcoming_events(venue_id)
-    return (jsonify([event.__dict__() for event in upcoming_data]), 200) if upcoming_data \
-        else (f'No Upcoming Events Found for Venue ID {venue_id}', 200)
+def get_venue_events(venue_id: int):
+    return get_query(endpoint=venue_events_url, argument=venue_id, call='event')
 
 
 @app.route('/events/metro_area/<metro_area_id>')
-def metro_area_upcoming(metro_area_id: int):
-    log(f'Metro Area Events Request for {metro_area_id} @ {request.access_route[-1]}')
-    upcoming_data = API.search_events_by_metro_area(metro_area_id)
-    return (jsonify([event.__dict__() for event in upcoming_data]), 200) if upcoming_data \
-        else (f'No upcoming events found for Metro ID {metro_area_id}', 200)
+def get_metro_area_events(metro_area_id: int):
+    return get_query(endpoint=metro_area_events_url, argument=metro_area_id, call='event')
 
 
-# @app.route('/venue/<venue_name>')
-# def venue_response(venue_name: str):
-#     log(f'Venue Request for {venue_name} @ {request.access_route[-1]}')
-#     api_data = API.search_venues(venue_name)
-#     venue_dict_list = API.instantiate_venues_from_list(api_data)
-#     serialized_venue_list = API.serialize_list(venue_dict_list)
-#     return jsonify(serialized_venue_list), 200
-#
-#
-# @app.route('/upcoming/artist/<int:sk_id>')
-# def artist_upcoming_response(sk_id: int):
-#     log(f'Artist Upcoming Request for {sk_id} @ {request.access_route[-1]}')
-#     api_data = API.search_artist_id_for_upcoming_events(sk_id)
-#     event_dict_list = API.instantiate_events_from_list(api_data)
-#     serialized_event_list = API.serialize_list(event_dict_list)
-#     return jsonify(serialized_event_list), 200
-#
-#
-# @app.route('/upcoming/venue/<int:venue_id>')
-# def venue_upcoming_response(venue_id: int):
-#     log(f'Venue Upcoming Request for {venue_id} @ {request.access_route[-1]}')
-#     api_data = API.search_venue_id_for_upcoming_events(venue_id)
-#     event_dict_list = API.instantiate_events_from_list(api_data)
-#     serialized_event_list = API.serialize_list(event_dict_list)
-#     return jsonify(serialized_event_list), 200
+def get_query(endpoint: str, argument: str or int, call: str, match_first=False):
+    data = concurrent_query(endpoint=endpoint, argument=argument, call=call, match_first=match_first)
+    if isinstance(data, type(None)):
+        return Response(json.dumps({'response': []}), content_type='application.json')
+    else:
+        instance_list = controller.instantiate_list_data(list_data=data, call=call)
+        return Response(generate(instance_list, call), content_type='application.json')
 
+
+def concurrent_pagination(page_num: int, argument: str, endpoint: str, call: str):
+    response = requests.get(endpoint.format(query=argument, key=key), params={'page': page_num}).json()
+    page_data = []
+    try:
+        for attr_dict in response['resultsPage']['results'][call]:
+            page_data.append(attr_dict)
+    except KeyError as kE:
+        if 'clientLocation' in response['resultsPage'].keys():
+            controller.log.log(f'clientLocation in response, page {page_num}')
+            pass
+        else:
+            controller.log.log(f'KeyError: {kE} processing Page {page_num}')
+    return page_data
+
+
+def concurrent_query(endpoint: str, call: str, argument=None, match_first=False):
+    response_data = requests.get(endpoint.format(query=argument, key=key)).json()
+    try:
+        dict_list = response_data['resultsPage']['results'][call]
+        if 'totalEntries' in response_data['resultsPage'].keys():
+            object_count = response_data['resultsPage']['totalEntries']
+            if object_count == 0:
+                return [{'objects': 'None Found'}]
+            num_pages = object_count // 50
+            partial_page = object_count % 50
+            if partial_page > 0:
+                num_pages += 1
+        else:
+            num_pages = 1
+        if match_first:
+            dict_list = dict_list[0]
+        data_dicts = []
+        with concurrent.futures.ProcessPoolExecutor(max_workers=5) as executor:
+            futures_to_data = \
+                [executor.submit(concurrent_pagination, page_num=page, argument=argument, endpoint=endpoint, call=call) for page in range(2, num_pages + 1)]
+            for future in concurrent.futures.as_completed(futures_to_data):
+                try:
+                    data = future.result()
+                    for attr_dict in data:
+                        data_dicts.append(attr_dict)
+                except Exception as exc:
+                    controller.log.log(f'Exception {exc} in concurrent_query')
+                else:
+                    pass
+            dict_list.extend(data_dicts)
+            return dict_list
+    except KeyError as kE:
+        controller.log.log(f'KeyError {kE} in concurrent_query')
+        return None
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
